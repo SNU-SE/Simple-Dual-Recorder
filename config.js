@@ -4,11 +4,11 @@
 const GOOGLE_CONFIG = {
     // Google Cloud Console에서 발급받은 OAuth 2.0 클라이언트 ID
     // https://console.cloud.google.com/apis/credentials
-    CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID_HERE',
+    CLIENT_ID: '499984957959-eqciqe3ee7tu6jf2vvmckqhpa2d5bthb.apps.googleusercontent.com',
     
     // Google Cloud Console에서 발급받은 API 키
     // https://console.cloud.google.com/apis/credentials
-    API_KEY: 'YOUR_GOOGLE_API_KEY_HERE'
+    API_KEY: 'AIzaSyDTKnUV7rE64QAAlDE7ZgnSOT0em9wEgrs'
 };
 
 // 설정 적용
