@@ -84,6 +84,80 @@
             color: white;
         }
         
+        /* 분할 녹화 정보 패널 */
+        .chunked-recording-info {
+            background: #e3f2fd;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #2196f3;
+            display: none;
+        }
+        
+        .chunked-recording-info.active {
+            display: block;
+        }
+        
+        .segment-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .info-box {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .info-box h4 {
+            color: #1976d2;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        
+        .info-box .value {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .progress-container {
+            margin-top: 15px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #4caf50, #8bc34a);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .memory-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .memory-warning.show {
+            display: block;
+        }
+        
         .preview-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -177,7 +251,7 @@
         }
         
         @media (max-width: 768px) {
-            .preview-container {
+            .preview-container, .segment-info {
                 grid-template-columns: 1fr;
             }
             
@@ -202,6 +276,39 @@
         <div class="controls">
             <button id="startBtn" class="btn btn-primary">🎬 녹화 시작</button>
             <button id="stopBtn" class="btn btn-danger" disabled>⏹️ 녹화 중지</button>
+        </div>
+        
+        <!-- 분할 녹화 정보 패널 -->
+        <div id="chunkedRecordingInfo" class="chunked-recording-info">
+            <h3>📊 스마트 분할 녹화 진행 상황</h3>
+            <div class="segment-info">
+                <div class="info-box">
+                    <h4>현재 세그먼트</h4>
+                    <div class="value" id="currentSegmentDisplay">1 / 7</div>
+                </div>
+                <div class="info-box">
+                    <h4>전체 녹화 시간</h4>
+                    <div class="value" id="totalTimeDisplay">00:00:00</div>
+                </div>
+                <div class="info-box">
+                    <h4>세그먼트 시간</h4>
+                    <div class="value" id="segmentTimeDisplay">00:00:00</div>
+                </div>
+                <div class="info-box">
+                    <h4>완료된 파일</h4>
+                    <div class="value" id="completedFilesDisplay">0개</div>
+                </div>
+            </div>
+            <div class="progress-container">
+                <h4>세그먼트 진행률</h4>
+                <div class="progress-bar">
+                    <div id="segmentProgress" class="progress-fill"></div>
+                </div>
+                <small id="progressText">0% (0분 / 60분)</small>
+            </div>
+            <div id="memoryWarning" class="memory-warning">
+                ⚠️ 메모리 사용량이 높습니다. 곧 자동으로 세그먼트를 분할합니다.
+            </div>
         </div>
         
         <div class="preview-container">
