@@ -156,6 +156,154 @@
             opacity: 0.8;
         }
         
+        .footer-btn {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .footer-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+        
+        /* 모달 스타일 */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: modalOpen 0.3s ease;
+        }
+        
+        @keyframes modalOpen {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-header {
+            padding: 20px 30px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        
+        .close:hover {
+            opacity: 1;
+        }
+        
+        .modal-body {
+            padding: 30px;
+        }
+        
+        .drive-status {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .drive-config label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .drive-config input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .drive-config input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .drive-config small {
+            display: block;
+            margin-top: 5px;
+            color: #6c757d;
+            font-size: 12px;
+        }
+        
+        .modal-buttons {
+            margin-top: 25px;
+            text-align: center;
+        }
+        
+        .modal-buttons .btn {
+            margin: 5px;
+            min-width: auto;
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+        }
+        
+        .upload-progress {
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #28a745, #20c997);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
         @media (max-width: 768px) {
             .preview-container {
                 grid-template-columns: 1fr;
@@ -168,6 +316,15 @@
             .btn {
                 display: block;
                 margin: 10px auto;
+            }
+            
+            .modal-content {
+                margin: 10% auto;
+                width: 95%;
+            }
+            
+            .modal-body {
+                padding: 20px;
             }
         }
     </style>
@@ -204,10 +361,42 @@
         </div>
     </div>
     
+    <!-- Google Drive 설정 모달 -->
+    <div id="driveModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📁 Google Drive 설정</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="drive-status" id="driveStatus">
+                    <p>Google Drive에 연결하여 녹화 파일을 자동 업로드하세요</p>
+                </div>
+                <div class="drive-config">
+                    <label for="sharedDriveId">공유 드라이브 ID:</label>
+                    <input type="text" id="sharedDriveId" placeholder="0B..." />
+                    <small>공유 드라이브 URL에서 ID를 복사해주세요</small>
+                    
+                    <label for="folderName">업로드 폴더명:</label>
+                    <input type="text" id="folderName" value="Recordings" placeholder="Recordings" />
+                </div>
+                <div class="modal-buttons">
+                    <button id="connectDriveBtn" class="btn btn-primary">🔗 Google Drive 연결</button>
+                    <button id="saveDriveConfigBtn" class="btn btn-success" style="display: none;">✅ 설정 저장</button>
+                    <button id="disconnectDriveBtn" class="btn btn-danger" style="display: none;">🔓 연결 해제</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="footer">
         <p>브라우저에서 웹캠과 화면 공유 권한을 허용해주세요</p>
+        <button id="driveSettingsBtn" class="footer-btn">📁 Google Drive 설정</button>
     </div>
     
+    <!-- Google API 라이브러리 -->
+    <script src="https://apis.google.com/js/api.js"></script>
     <script src="app.js"></script>
+    <script src="config.js"></script>
 </body>
 </html>
