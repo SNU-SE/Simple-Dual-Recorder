@@ -516,7 +516,7 @@ class DualRecorder {
     
     // 브라우저 종료 방지 및 긴급 저장 기능
     setupBrowserExitProtection() {
-        // beforeunload 이벤트: 브라우저 종료 시 경고창
+        // beforeunload 이벤트: 브라우저 종료 시 경고창 및 즉시 긴급 저장
         window.addEventListener('beforeunload', (event) => {
             if (this.isRecording) {
                 // 녹화 중일 때는 더 강한 경고 메시지
@@ -524,14 +524,30 @@ class DualRecorder {
                 event.preventDefault();
                 event.returnValue = message;
                 
-                // 긴급 저장 준비
+                // 긴급 저장 준비 (메타데이터)
                 this.prepareEmergencySave();
+                
+                // 즉시 긴급 저장 실행 (실제 파일 저장)
+                console.log('beforeunload: 즉시 긴급 저장 실행');
+                this.executeEmergencySave();
+                
+                // 추가 보안: 약간의 지연을 두고 한 번 더 실행
+                setTimeout(() => {
+                    console.log('beforeunload: 지연 긴급 저장 실행');
+                    this.executeEmergencySave();
+                }, 100);
+                
                 return message;
             } else if (this.webcamChunks.length > 0 || this.screenChunks.length > 0) {
                 // 녹화는 중지했지만 저장되지 않은 데이터가 있을 때
                 const message = '저장되지 않은 녹화 데이터가 있습니다.\n정말 종료하시겠습니까?';
                 event.preventDefault();
                 event.returnValue = message;
+                
+                // 저장되지 않은 데이터도 긴급 저장
+                console.log('beforeunload: 저장되지 않은 데이터 긴급 저장');
+                this.executeEmergencySaveForUnsavedData();
+                
                 return message;
             }
         });
@@ -540,7 +556,18 @@ class DualRecorder {
         document.addEventListener('visibilitychange', () => {
             if (document.hidden && this.isRecording) {
                 console.log('페이지가 숨겨짐 - 녹화 상태 유지 중');
-                // 필요시 여기에 추가 로직 구현
+                
+                // 페이지가 숨겨질 때 예방적 긴급 저장 준비
+                this.prepareEmergencySave();
+                console.log('visibilitychange: 예방적 긴급 저장 준비 완료');
+                
+                // 3초 후에도 여전히 숨겨져 있으면 긴급 저장 실행
+                setTimeout(() => {
+                    if (document.hidden && this.isRecording) {
+                        console.log('visibilitychange: 페이지가 여전히 숨겨져 있음 - 긴급 저장 실행');
+                        this.executeEmergencySave();
+                    }
+                }, 3000);
             }
         });
         
@@ -628,6 +655,35 @@ class DualRecorder {
             
         } catch (error) {
             console.error('긴급 저장 중 오류 발생:', error);
+        }
+    }
+    
+    // 저장되지 않은 데이터를 위한 긴급 저장 (녹화가 중지되었지만 파일이 아직 저장되지 않은 경우)
+    executeEmergencySaveForUnsavedData() {
+        try {
+            console.log('저장되지 않은 데이터 긴급 저장 시작...');
+            
+            // 현재까지의 청크가 있다면 즉시 저장
+            if (this.webcamChunks.length > 0) {
+                const emergencyWebcamFilename = this.getEmergencyFilename('webcam');
+                const webcamBlob = new Blob(this.webcamChunks, { type: 'video/webm' });
+                this.downloadFile(webcamBlob, emergencyWebcamFilename);
+                console.log(`긴급 웹캠 파일 저장: ${emergencyWebcamFilename}`);
+                this.webcamChunks = []; // 저장 후 청크 초기화
+            }
+            
+            if (this.screenChunks.length > 0) {
+                const emergencyScreenFilename = this.getEmergencyFilename('screen');
+                const screenBlob = new Blob(this.screenChunks, { type: 'video/webm' });
+                this.downloadFile(screenBlob, emergencyScreenFilename);
+                console.log(`긴급 화면 파일 저장: ${emergencyScreenFilename}`);
+                this.screenChunks = []; // 저장 후 청크 초기화
+            }
+            
+            console.log('저장되지 않은 데이터 긴급 저장 완료');
+            
+        } catch (error) {
+            console.error('저장되지 않은 데이터 긴급 저장 중 오류 발생:', error);
         }
     }
     
