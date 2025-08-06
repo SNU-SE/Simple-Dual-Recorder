@@ -25,6 +25,11 @@ class DualRecorder {
         
         this.initializeElements();
         this.bindEvents();
+        
+        // 페이지 로드 시 이전 긴급 저장 데이터 확인
+        setTimeout(() => {
+            this.checkForEmergencyRecovery();
+        }, 1000); // 1초 후 체크하여 UI가 완전히 로드된 후 실행
     }
     
     initializeElements() {
@@ -50,6 +55,9 @@ class DualRecorder {
     bindEvents() {
         this.startBtn.addEventListener('click', () => this.startRecording());
         this.stopBtn.addEventListener('click', () => this.stopRecording());
+        
+        // 브라우저 종료 방지 및 긴급 저장 기능 추가
+        this.setupBrowserExitProtection();
     }
     
     async startRecording() {
@@ -505,9 +513,178 @@ class DualRecorder {
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
+    
+    // 브라우저 종료 방지 및 긴급 저장 기능
+    setupBrowserExitProtection() {
+        // beforeunload 이벤트: 브라우저 종료 시 경고창
+        window.addEventListener('beforeunload', (event) => {
+            if (this.isRecording) {
+                // 녹화 중일 때는 더 강한 경고 메시지
+                const message = '🎬 녹화가 진행 중입니다!\n\n브라우저를 종료하면 현재까지의 녹화 데이터가 저장되지만,\n진행 중인 녹화가 중단됩니다.\n\n정말 종료하시겠습니까?';
+                event.preventDefault();
+                event.returnValue = message;
+                
+                // 긴급 저장 준비
+                this.prepareEmergencySave();
+                return message;
+            } else if (this.webcamChunks.length > 0 || this.screenChunks.length > 0) {
+                // 녹화는 중지했지만 저장되지 않은 데이터가 있을 때
+                const message = '저장되지 않은 녹화 데이터가 있습니다.\n정말 종료하시겠습니까?';
+                event.preventDefault();
+                event.returnValue = message;
+                return message;
+            }
+        });
+        
+        // visibilitychange 이벤트: 탭 전환/최소화 감지
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && this.isRecording) {
+                console.log('페이지가 숨겨짐 - 녹화 상태 유지 중');
+                // 필요시 여기에 추가 로직 구현
+            }
+        });
+        
+        // pagehide 이벤트: 페이지 완전 언로드 시 긴급 저장
+        window.addEventListener('pagehide', (event) => {
+            if (this.isRecording) {
+                console.log('페이지 언로드 감지 - 긴급 저장 실행');
+                this.executeEmergencySave();
+            }
+        });
+        
+        // unload 이벤트: 추가 보안
+        window.addEventListener('unload', () => {
+            if (this.isRecording) {
+                this.executeEmergencySave();
+            }
+        });
+    }
+    
+    // 긴급 저장 준비
+    prepareEmergencySave() {
+        // 현재 녹화 중인 데이터의 메타데이터 저장
+        if (this.isRecording) {
+            const emergencyData = {
+                isRecording: this.isRecording,
+                isChunkedRecording: this.isChunkedRecording,
+                currentSegment: this.currentSegment,
+                totalSegments: this.totalSegments,
+                startTime: this.startTime,
+                segmentStartTime: this.segmentStartTime,
+                userName: this.userName,
+                baseTimestamp: this.baseTimestamp,
+                completedSegments: this.completedSegments,
+                webcamChunksCount: this.webcamChunks.length,
+                screenChunksCount: this.screenChunks.length
+            };
+            
+            // 로컬 스토리지에 임시 저장
+            localStorage.setItem('dualRecorder_emergencyData', JSON.stringify(emergencyData));
+            console.log('긴급 저장 데이터 준비 완료');
+        }
+    }
+    
+    // 긴급 저장 실행
+    executeEmergencySave() {
+        if (!this.isRecording) return;
+        
+        try {
+            console.log('긴급 저장 시작...');
+            
+            // 현재 녹화 중단
+            if (this.webcamRecorder && this.webcamRecorder.state === 'recording') {
+                this.webcamRecorder.requestData(); // 마지막 데이터 요청
+                this.webcamRecorder.stop();
+            }
+            if (this.screenRecorder && this.screenRecorder.state === 'recording') {
+                this.screenRecorder.requestData(); // 마지막 데이터 요청
+                this.screenRecorder.stop();
+            }
+            
+            // 현재까지의 청크가 있다면 즉시 저장
+            if (this.webcamChunks.length > 0) {
+                const emergencyWebcamFilename = this.getEmergencyFilename('webcam');
+                const webcamBlob = new Blob(this.webcamChunks, { type: 'video/webm' });
+                this.downloadFile(webcamBlob, emergencyWebcamFilename);
+                console.log(`긴급 웹캠 파일 저장: ${emergencyWebcamFilename}`);
+            }
+            
+            if (this.screenChunks.length > 0) {
+                const emergencyScreenFilename = this.getEmergencyFilename('screen');
+                const screenBlob = new Blob(this.screenChunks, { type: 'video/webm' });
+                this.downloadFile(screenBlob, emergencyScreenFilename);
+                console.log(`긴급 화면 파일 저장: ${emergencyScreenFilename}`);
+            }
+            
+            // 스트림 정리
+            if (this.webcamStream) {
+                this.webcamStream.getTracks().forEach(track => track.stop());
+            }
+            if (this.screenStream) {
+                this.screenStream.getTracks().forEach(track => track.stop());
+            }
+            
+            console.log('긴급 저장 완료');
+            
+        } catch (error) {
+            console.error('긴급 저장 중 오류 발생:', error);
+        }
+    }
+    
+    // 긴급 저장용 파일명 생성
+    getEmergencyFilename(type) {
+        const now = new Date();
+        const timestamp = now.toLocaleString('ko-KR', {
+            year: '2-digit',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }).replace(/[. :]/g, '').replace(/(\d{6})(\d{6})/, '$1_$2');
+        
+        if (this.isChunkedRecording) {
+            const segmentNumber = this.currentSegment.toString().padStart(3, '0');
+            return `${type}_EMERGENCY_${this.baseTimestamp}_${this.userName}_${segmentNumber}_${timestamp}.webm`;
+        } else {
+            const userName = this.userName || 'unnamed';
+            return `${type}_EMERGENCY_${timestamp}_${userName}.webm`;
+        }
+    }
+    
+    // 페이지 로드 시 이전 긴급 저장 데이터 확인
+    checkForEmergencyRecovery() {
+        const emergencyData = localStorage.getItem('dualRecorder_emergencyData');
+        if (emergencyData) {
+            try {
+                const data = JSON.parse(emergencyData);
+                const message = `이전 세션에서 녹화가 중단된 것 같습니다.\n\n` +
+                    `사용자: ${data.userName}\n` +
+                    `녹화 시작 시간: ${new Date(data.startTime).toLocaleString()}\n` +
+                    `현재 세그먼트: ${data.currentSegment}/${data.totalSegments}\n` +
+                    `완료된 세그먼트: ${data.completedSegments.length}개\n\n` +
+                    `긴급 저장된 파일을 확인해보세요.`;
+                
+                alert(message);
+                
+                // 사용자가 확인했으므로 긴급 데이터 삭제
+                localStorage.removeItem('dualRecorder_emergencyData');
+            } catch (error) {
+                console.error('긴급 복구 데이터 파싱 오류:', error);
+                localStorage.removeItem('dualRecorder_emergencyData');
+            }
+        }
+    }
 }
 
 // 앱 초기화
 document.addEventListener('DOMContentLoaded', () => {
-    new DualRecorder();
+    const recorder = new DualRecorder();
+    
+    // 전역에서 접근 가능하도록 설정 (디버깅용)
+    window.dualRecorder = recorder;
+    
+    console.log('🎥 Dual Recorder 초기화 완료');
+    console.log('브라우저 종료 방지 기능 활성화됨');
 });
