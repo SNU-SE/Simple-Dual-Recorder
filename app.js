@@ -527,8 +527,8 @@ class DualRecorder {
                 // 긴급 저장 준비 (메타데이터)
                 this.prepareEmergencySave();
                 
-                // 즉시 긴급 저장 실행 (실제 파일 저장)
-                console.log('beforeunload: 즉시 긴급 저장 실행');
+                // 브라우저 종료 시에만 긴급 저장 실행 (실제 파일 저장)
+                console.log('beforeunload: 브라우저 종료 감지 - 긴급 저장 실행');
                 this.executeEmergencySave();
                 
                 // 추가 보안: 약간의 지연을 두고 한 번 더 실행
@@ -552,22 +552,17 @@ class DualRecorder {
             }
         });
         
-        // visibilitychange 이벤트: 탭 전환/최소화 감지
+        // visibilitychange 이벤트: 탭 전환/최소화 감지 (녹화 중단하지 않음)
         document.addEventListener('visibilitychange', () => {
             if (document.hidden && this.isRecording) {
                 console.log('페이지가 숨겨짐 - 녹화 상태 유지 중');
                 
-                // 페이지가 숨겨질 때 예방적 긴급 저장 준비
+                // 페이지가 숨겨질 때 예방적 긴급 저장 준비만 수행
                 this.prepareEmergencySave();
                 console.log('visibilitychange: 예방적 긴급 저장 준비 완료');
                 
-                // 3초 후에도 여전히 숨겨져 있으면 긴급 저장 실행
-                setTimeout(() => {
-                    if (document.hidden && this.isRecording) {
-                        console.log('visibilitychange: 페이지가 여전히 숨겨져 있음 - 긴급 저장 실행');
-                        this.executeEmergencySave();
-                    }
-                }, 3000);
+                // 탭 전환 시에는 긴급 저장을 실행하지 않음 (녹화 계속 진행)
+                // 실제 브라우저 종료 시에만 긴급 저장이 실행됨
             }
         });
         
@@ -611,14 +606,14 @@ class DualRecorder {
         }
     }
     
-    // 긴급 저장 실행
+    // 긴급 저장 실행 (브라우저 종료 시에만 호출됨)
     executeEmergencySave() {
         if (!this.isRecording) return;
         
         try {
             console.log('긴급 저장 시작...');
             
-            // 현재 녹화 중단
+            // 현재 녹화 중단 (브라우저 종료 시에만)
             if (this.webcamRecorder && this.webcamRecorder.state === 'recording') {
                 this.webcamRecorder.requestData(); // 마지막 데이터 요청
                 this.webcamRecorder.stop();
@@ -643,7 +638,7 @@ class DualRecorder {
                 console.log(`긴급 화면 파일 저장: ${emergencyScreenFilename}`);
             }
             
-            // 스트림 정리
+            // 스트림 정리 (브라우저 종료 시에만)
             if (this.webcamStream) {
                 this.webcamStream.getTracks().forEach(track => track.stop());
             }
