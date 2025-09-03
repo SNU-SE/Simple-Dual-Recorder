@@ -22,6 +22,8 @@
 - `webcam_YYMMDD_HHMMSS.webm`: 웹캠 녹화 파일
 - `screen_YYMMDD_HHMMSS.webm`: 화면 녹화 파일
 
+** 만약 2시간 이상으로 진행되는 경우, 파일은 1시간 단위로 분할되어 저장됩니다.
+
 ## 🔧 기술 스택
 
 - **HTML5**: 구조 및 레이아웃
@@ -39,27 +41,8 @@
 
 > **참고**: HTTPS 환경에서만 동작합니다 (보안 정책)
 
-## 📋 사용 시나리오
-
-- 🎓 **온라인 강의** 제작
-- 💼 **화상 회의** 녹화
-- 🎮 **게임 플레이** 녹화
-- 📚 **튜토리얼** 제작
-- 🔍 **버그 리포트** 작성
-
 ## 🔒 개인정보 보호
 
 모든 녹화는 **로컬에서만** 처리되며, 서버로 전송되지 않습니다.
-
-## 📱 GitHub Pages 배포
-
-이 프로젝트는 GitHub Pages에서 바로 실행할 수 있습니다:
-
-1. Repository Settings → Pages
-2. Source를 "Deploy from a branch" 선택
-3. Branch를 "main" 선택
-4. `https://username.github.io/repository-name` 에서 접근
-
----
 
 **Made with ❤️ for simple screen recording**
