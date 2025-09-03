@@ -516,7 +516,7 @@ class DualRecorder {
     
     // 브라우저 종료 방지 및 긴급 저장 기능
     setupBrowserExitProtection() {
-        // beforeunload 이벤트: 브라우저 종료 시 경고창 및 즉시 긴급 저장
+        // beforeunload 이벤트: 브라우저 종료 시 경고창만 표시 (긴급 저장은 pagehide에서 처리)
         window.addEventListener('beforeunload', (event) => {
             if (this.isRecording) {
                 // 녹화 중일 때는 더 강한 경고 메시지
@@ -524,18 +524,9 @@ class DualRecorder {
                 event.preventDefault();
                 event.returnValue = message;
                 
-                // 긴급 저장 준비 (메타데이터)
+                // 긴급 저장 준비 (메타데이터만 저장, 실제 파일 저장은 pagehide에서)
                 this.prepareEmergencySave();
-                
-                // 브라우저 종료 시에만 긴급 저장 실행 (실제 파일 저장)
-                console.log('beforeunload: 브라우저 종료 감지 - 긴급 저장 실행');
-                this.executeEmergencySave();
-                
-                // 추가 보안: 약간의 지연을 두고 한 번 더 실행
-                setTimeout(() => {
-                    console.log('beforeunload: 지연 긴급 저장 실행');
-                    this.executeEmergencySave();
-                }, 100);
+                console.log('beforeunload: 경고창 표시 및 긴급 저장 준비 완료');
                 
                 return message;
             } else if (this.webcamChunks.length > 0 || this.screenChunks.length > 0) {
@@ -544,9 +535,8 @@ class DualRecorder {
                 event.preventDefault();
                 event.returnValue = message;
                 
-                // 저장되지 않은 데이터도 긴급 저장
-                console.log('beforeunload: 저장되지 않은 데이터 긴급 저장');
-                this.executeEmergencySaveForUnsavedData();
+                // 저장되지 않은 데이터 준비 (실제 저장은 pagehide에서)
+                console.log('beforeunload: 저장되지 않은 데이터 경고창 표시');
                 
                 return message;
             }
@@ -566,18 +556,26 @@ class DualRecorder {
             }
         });
         
-        // pagehide 이벤트: 페이지 완전 언로드 시 긴급 저장
+        // pagehide 이벤트: 실제 페이지 종료 시에만 긴급 저장 실행 (취소 버튼 선택 시에는 발생하지 않음)
         window.addEventListener('pagehide', (event) => {
             if (this.isRecording) {
-                console.log('페이지 언로드 감지 - 긴급 저장 실행');
+                console.log('페이지 언로드 감지 - 실제 브라우저 종료로 판단하여 긴급 저장 실행');
                 this.executeEmergencySave();
+            } else if (this.webcamChunks.length > 0 || this.screenChunks.length > 0) {
+                // 저장되지 않은 데이터가 있는 경우에도 긴급 저장
+                console.log('페이지 언로드 감지 - 저장되지 않은 데이터 긴급 저장 실행');
+                this.executeEmergencySaveForUnsavedData();
             }
         });
         
-        // unload 이벤트: 추가 보안
+        // unload 이벤트: 최종 백업 보안 장치
         window.addEventListener('unload', () => {
             if (this.isRecording) {
+                console.log('unload 이벤트 - 최종 백업 긴급 저장 실행');
                 this.executeEmergencySave();
+            } else if (this.webcamChunks.length > 0 || this.screenChunks.length > 0) {
+                console.log('unload 이벤트 - 저장되지 않은 데이터 최종 백업 저장');
+                this.executeEmergencySaveForUnsavedData();
             }
         });
     }
