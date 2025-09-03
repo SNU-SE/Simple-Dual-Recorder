@@ -1,6 +1,7 @@
 # 🎥 간단 웹캠 및 컴퓨터 화면 녹화 웹앱(in Google Chrome)
 
 웹캠과 화면을 동시에 녹화할 수 있는 간단한 웹 애플리케이션입니다.
+LINK: https://snu-se.github.io/Simple-Dual-Recorder/
 
 ## ✨ 주요 기능
 
